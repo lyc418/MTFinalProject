@@ -160,11 +160,19 @@ fun TrainingScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun QuestionnaireScreen(modifier: Modifier = Modifier) {
+    val totalStep = 8
     var currentStep by rememberSaveable { mutableIntStateOf(1) }
     var age by rememberSaveable { mutableStateOf("") }
     var healthCondition by rememberSaveable { mutableStateOf("") }
     var exerciseHabit by rememberSaveable { mutableStateOf("") }
+    var strength by rememberSaveable { mutableStateOf("") }
+    var assistanceInWalking by rememberSaveable { mutableStateOf("") }
+    var riseFromChair by rememberSaveable { mutableStateOf("") }
+    var climbStairs by rememberSaveable { mutableStateOf("") }
+    var falls by rememberSaveable { mutableStateOf("") }
     var isCompleted by rememberSaveable { mutableStateOf(false) }
+    val sarcfScore = listOf(strength, assistanceInWalking, riseFromChair, climbStairs, falls).sumOf{mapSarcfScore(it)}
+    val sarcfRisk = if (sarcfScore >= 4) "高風險" else "低風險"
 
     Column(
         modifier = modifier
@@ -174,7 +182,7 @@ fun QuestionnaireScreen(modifier: Modifier = Modifier) {
         if (!isCompleted) {
             // Progress indicator
             Text(
-                text = "問卷 ($currentStep / 3)",
+                text = "問卷 ($currentStep / $totalStep)",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -192,6 +200,26 @@ fun QuestionnaireScreen(modifier: Modifier = Modifier) {
                 3 -> ExerciseHabitQuestion(
                     selectedHabit = exerciseHabit,
                     onHabitSelected = { exerciseHabit = it }
+                )
+                4 -> StrengthQuestion(
+                    selectedCondition = strength,
+                    onConditionSelected = { strength = it }
+                )
+                5 -> AssistanceInWalkingQuestion(
+                    selectedCondition = assistanceInWalking,
+                    onConditionSelected = { assistanceInWalking = it }
+                )
+                6 -> RiseFromChairQuestion(
+                    selectedCondition = riseFromChair,
+                    onConditionSelected = { riseFromChair = it }
+                )
+                7 -> ClimbStairsQuestion(
+                    selectedCondition = climbStairs,
+                    onConditionSelected = { climbStairs = it }
+                )
+                8 -> FallsQuestion(
+                    selectedCondition = falls,
+                    onConditionSelected = { falls = it }
                 )
             }
 
@@ -213,7 +241,7 @@ fun QuestionnaireScreen(modifier: Modifier = Modifier) {
 
                 Button(
                     onClick = {
-                        if (currentStep < 3) {
+                        if (currentStep < totalStep) {
                             currentStep++
                         } else {
                             isCompleted = true
@@ -224,10 +252,15 @@ fun QuestionnaireScreen(modifier: Modifier = Modifier) {
                         1 -> age.isNotEmpty()
                         2 -> healthCondition.isNotEmpty()
                         3 -> exerciseHabit.isNotEmpty()
+                        4 -> strength.isNotEmpty()
+                        5 -> assistanceInWalking.isNotEmpty()
+                        6 -> riseFromChair.isNotEmpty()
+                        7 -> climbStairs.isNotEmpty()
+                        8 -> falls.isNotEmpty()
                         else -> false
                     }
                 ) {
-                    Text(if (currentStep < 3) "下一步" else "完成")
+                    Text(if (currentStep < totalStep) "下一步" else "完成")
                 }
             }
         } else {
@@ -254,6 +287,8 @@ fun QuestionnaireScreen(modifier: Modifier = Modifier) {
                         Text("年齡: $age")
                         Text("健康狀況: $healthCondition")
                         Text("運動習慣: $exerciseHabit")
+                        Text("sarc-f分數: $sarcfScore")
+                        Text("肌少症風險: $sarcfRisk")
                     }
                 }
 
@@ -264,6 +299,11 @@ fun QuestionnaireScreen(modifier: Modifier = Modifier) {
                     age = ""
                     healthCondition = ""
                     exerciseHabit = ""
+                    strength = ""
+                    assistanceInWalking = ""
+                    riseFromChair = ""
+                    climbStairs = ""
+                    falls = ""
                     isCompleted = false
                 }) {
                     Text("重新填寫")
@@ -307,6 +347,76 @@ fun ExerciseHabitQuestion(selectedHabit: String, onHabitSelected: (String) -> Un
         selectedOption = selectedHabit,
         onOptionSelected = onHabitSelected
     )
+}
+
+@Composable
+fun StrengthQuestion(selectedCondition: String, onConditionSelected: (String) -> Unit) {
+    val conditions = listOf("無困難", "有些困難", "很困難或無法做到")
+
+    QuestionCard(
+        title = "您在拿 4.5 公斤的東西是否有困難?",
+        options = conditions,
+        selectedOption = selectedCondition,
+        onOptionSelected = onConditionSelected
+    )
+}
+
+@Composable
+fun AssistanceInWalkingQuestion(selectedCondition: String, onConditionSelected: (String) -> Unit) {
+    val conditions = listOf("無困難", "有些困難", "很困難或無法做到")
+
+    QuestionCard(
+        title = "您於家中從這房間走到另一個房間是否有困難?",
+        options = conditions,
+        selectedOption = selectedCondition,
+        onOptionSelected = onConditionSelected
+    )
+}
+
+@Composable
+fun RiseFromChairQuestion(selectedCondition: String, onConditionSelected: (String) -> Unit) {
+    val conditions = listOf("無困難", "有些困難", "很困難或無法做到")
+
+    QuestionCard(
+        title = "您從椅子或床上站起來是否有困難?",
+        options = conditions,
+        selectedOption = selectedCondition,
+        onOptionSelected = onConditionSelected
+    )
+}
+
+@Composable
+fun ClimbStairsQuestion(selectedCondition: String, onConditionSelected: (String) -> Unit) {
+    val conditions = listOf("無困難", "有些困難", "很困難或無法做到")
+
+    QuestionCard(
+        title = "您在爬 10 個階梯是否有困難?",
+        options = conditions,
+        selectedOption = selectedCondition,
+        onOptionSelected = onConditionSelected
+    )
+}
+
+@Composable
+fun FallsQuestion(selectedCondition: String, onConditionSelected: (String) -> Unit) {
+    val conditions = listOf("0次", "1~3次", "4次以上")
+
+    QuestionCard(
+        title = "您過去一年的跌倒次數?",
+        options = conditions,
+        selectedOption = selectedCondition,
+        onOptionSelected = onConditionSelected
+    )
+}
+
+fun mapSarcfScore(ans: String): Int = when (ans) {
+    "無困難" -> 0
+    "有些困難" -> 1
+    "很困難或無法做到" -> 2
+    "0次" -> 0
+    "1~3次" -> 1
+    "4次以上" -> 2
+    else -> 0
 }
 
 @Composable

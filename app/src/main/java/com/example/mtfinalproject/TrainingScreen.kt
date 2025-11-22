@@ -1,3 +1,5 @@
+@file:Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
+
 package com.example.mtfinalproject
 
 import android.Manifest
@@ -70,6 +72,7 @@ fun TrainingScreen() {
         Box(modifier = Modifier.fillMaxSize()) {
             // 1. AndroidView: 顯示相機畫面
             AndroidView(
+                modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
                     val previewView = PreviewView(ctx)
 
@@ -116,8 +119,7 @@ fun TrainingScreen() {
                     }, ContextCompat.getMainExecutor(ctx))
 
                     previewView
-                },
-                modifier = Modifier.fillMaxSize()
+                }
             )
 
             // 2. 資訊面板 (HUD)

@@ -2,6 +2,7 @@ package com.example.mtfinalproject
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -59,33 +61,45 @@ class MainActivity : ComponentActivity() {
 fun MTFinalProjectApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.DASHBOARD) }
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            it.icon,
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
-                )
-            }
+    var isTraining by rememberSaveable { mutableStateOf(false) }
+
+    if (isTraining) {
+        TrainingScreen()
+
+        BackHandler {
+            isTraining = false
         }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            when (currentDestination) {
-                AppDestinations.DASHBOARD -> {
-                    DashboardScreen(modifier = Modifier.padding(innerPadding))
+    } else {
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                AppDestinations.entries.forEach {
+                    item(
+                        icon = {
+                            Icon(
+                                it.icon,
+                                contentDescription = it.label
+                            )
+                        },
+                        label = { Text(it.label) },
+                        selected = it == currentDestination,
+                        onClick = { currentDestination = it }
+                    )
                 }
-                AppDestinations.TRAINING -> {
-                    TrainingScreen(modifier = Modifier.padding(innerPadding))
-                }
-                AppDestinations.QUESTIONNAIRE -> {
-                    QuestionnaireScreen(modifier = Modifier.padding(innerPadding))
+            }
+        ) {
+            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                when (currentDestination) {
+                    AppDestinations.DASHBOARD -> {
+                        DashboardScreen(modifier = Modifier.padding(innerPadding))
+                    }
+
+                    AppDestinations.TRAINING -> {
+                        TrainingPlanScreen(modifier = Modifier.padding(innerPadding), onStartTraining = { isTraining = true })
+                    }
+
+                    AppDestinations.QUESTIONNAIRE -> {
+                        QuestionnaireScreen(modifier = Modifier.padding(innerPadding))
+                    }
                 }
             }
         }
@@ -138,12 +152,12 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun TrainingScreen(modifier: Modifier = Modifier) {
+fun TrainingPlanScreen(modifier: Modifier = Modifier, onStartTraining: () -> Unit) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -151,10 +165,26 @@ fun TrainingScreen(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.headlineLarge
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "訓練內容即將推出",
-            style = MaterialTheme.typography.bodyLarge
-        )
+//        Text(
+//            text = "訓練內容即將推出",
+//            style = MaterialTheme.typography.bodyLarge
+//        )
+        Card (
+            onClick = onStartTraining,
+            modifier = modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "深蹲",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "sample",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
     }
 }
 

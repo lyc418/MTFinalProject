@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.example.mtfinalproject.ui.theme.SignInGreen
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
@@ -66,13 +71,13 @@ class MainActivity : ComponentActivity() {
 fun MTFinalProjectApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.DASHBOARD) }
 
-    var isTraining by rememberSaveable { mutableStateOf(false) }
+    var trainingExercise by rememberSaveable { mutableStateOf<ExerciseType?>(null) }
 
-    if (isTraining) {
-        TrainingScreen()
+    if (trainingExercise != null) {
+        TrainingScreen(exerciseType = trainingExercise!!, onClose = { trainingExercise = null })
 
         BackHandler {
-            isTraining = false
+            trainingExercise = null
         }
     } else {
         NavigationSuiteScaffold(
@@ -99,7 +104,12 @@ fun MTFinalProjectApp() {
                     }
 
                     AppDestinations.TRAINING -> {
-                        TrainingPlanScreen(modifier = Modifier.padding(innerPadding), onStartTraining = { isTraining = true })
+                        TrainingPlanScreen(
+                            modifier = Modifier.padding(innerPadding),
+                            onStartTraining = { selectedExercise ->
+                                trainingExercise = selectedExercise
+                            }
+                        )
                     }
 
                     AppDestinations.QUESTIONNAIRE -> {
@@ -268,33 +278,44 @@ fun SignInCalendar(signInDates: Set<String>) {
 }
 
 @Composable
-fun TrainingPlanScreen(modifier: Modifier = Modifier, onStartTraining: () -> Unit) {
+fun TrainingPlanScreen(modifier: Modifier = Modifier, onStartTraining: (selectedExercise: ExerciseType) -> Unit) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Text(
-            text = "訓練",
-            style = MaterialTheme.typography.headlineLarge
+            text = "選擇訓練項目",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        Card (
-            onClick = onStartTraining,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "深蹲",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "sample",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(ExerciseType.values()) { exercise ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onStartTraining(exercise) },
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = exercise.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = exercise.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }

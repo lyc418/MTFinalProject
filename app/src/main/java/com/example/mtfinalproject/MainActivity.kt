@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -279,44 +280,98 @@ fun SignInCalendar(signInDates: Set<String>) {
 
 @Composable
 fun TrainingPlanScreen(modifier: Modifier = Modifier, onStartTraining: (selectedExercise: ExerciseType) -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Text(
-            text = "選擇訓練項目",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    var isLoading by remember { mutableStateOf(true) }
+    var scarfScore by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(Unit) {
+        val data = QuestionnaireRepository.getAnswers()
+        if (data != null) {
+            scarfScore = data.sarcfScore
+        }
+        isLoading = false
+    }
+    val exercises = remember<List<ExerciseType>>(scarfScore) {
+        if (scarfScore == -1) {
+            emptyList<ExerciseType>()
+        } else {
+            val resultList = mutableListOf<ExerciseType>()
+            resultList.add(ExerciseType.BOTTLE_LIFT)
+            resultList.add(ExerciseType.OVERHEAD_EXTENSION)
+            if (scarfScore >= 4) {
+                resultList.add(ExerciseType.ANKLE_WEIGHT_LEG_EXTENSION_LEFT)
+                resultList.add(ExerciseType.ANKLE_WEIGHT_LEG_EXTENSION_RIGHT)
+            } else {
+                resultList.add(ExerciseType.CHAIR_STAND)
+            }
+            resultList
+        }
+    }
+    if (isLoading) {
+        Column(
+            modifier = modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "載入中...",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    } else if (!exercises.isEmpty()) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.background),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "選擇訓練項目",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(ExerciseType.values()) { exercise ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onStartTraining(exercise) },
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = exercise.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = exercise.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(exercises) { exercise ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onStartTraining(exercise) },
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = exercise.title,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = exercise.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.background),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "請先完成問卷",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
         }
     }
 }

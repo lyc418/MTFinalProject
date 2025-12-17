@@ -38,11 +38,11 @@ import kotlin.math.abs
 import kotlin.math.max
 
 enum class ExerciseType(val title: String, val description: String) {
-    BOTTLE_LIFT("舉水瓶 (雙手)", "坐下，雙手各握水瓶。手肘彎曲，將瓶子舉到與肩膀齊高。"),
+    BOTTLE_LIFT("舉水瓶", "坐下，雙手各握水瓶(根據情況自行調整重量)。手肘彎曲，將瓶子舉到與肩膀齊高。"),
     OVERHEAD_EXTENSION("上伸展手臂", "雙手互扣，手臂向上拉直。維持 10-12 秒。"),
-    ANKLE_WEIGHT_LEG_EXTENSION_LEFT("腿部伸展 (負重-左腳)", "坐在椅子上，在左腳踝上放 500 公克的負重沙包，水平抬起左小腿，並盡可能保持筆直"),
-    ANKLE_WEIGHT_LEG_EXTENSION_RIGHT("腿部伸展 (負重-右腳)", "坐在椅子上，在右腳踝上放 500 公克的負重沙包，水平抬起右小腿，並盡可能保持筆直"),
-    CHAIR_STAND("從椅子起身 (正面)", "坐在有扶手的椅子上，不依靠扶手自行站起來。")
+    ANKLE_WEIGHT_LEG_EXTENSION_LEFT("負重腿部伸展(左腳)", "坐在椅子上，在左腳踝上放 500 公克的負重沙包，水平抬起左小腿，並盡可能保持筆直"),
+    ANKLE_WEIGHT_LEG_EXTENSION_RIGHT("負重腿部伸展(右腳)", "坐在椅子上，在右腳踝上放 500 公克的負重沙包，水平抬起右小腿，並盡可能保持筆直"),
+    CHAIR_STAND("從椅子起身", "坐在有扶手的椅子上，不依靠扶手自行站起來。")
 }
 
 @Composable
@@ -89,108 +89,113 @@ fun TrainingScreen(
     var imageWidth by remember { mutableIntStateOf(0) }
     var imageHeight by remember { mutableIntStateOf(0) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                val previewView = PreviewView(ctx)
-                previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
+    Scaffold(
+        containerColor = Color.Transparent
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    val previewView = PreviewView(ctx)
+                    previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
 
-                val cameraExecutor = Executors.newSingleThreadExecutor()
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                    val cameraExecutor = Executors.newSingleThreadExecutor()
+                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
-                cameraProviderFuture.addListener({
-                    val cameraProvider = cameraProviderFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-
-                    val imageAnalysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
-                        .also {
-                            it.setAnalyzer(cameraExecutor, ExerciseAnalyzer(exerciseType) { info, status, correct, pose, width, height ->
-                                dataInfo = info
-                                statusText = status
-                                isCorrect = correct
-
-                                // skeleton for debug
-                                currentPose = pose
-                                imageWidth = width
-                                imageHeight = height
-                            })
+                    cameraProviderFuture.addListener({
+                        val cameraProvider = cameraProviderFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
                         }
 
-                    val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+                        val imageAnalysis = ImageAnalysis.Builder()
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
+                            .also {
+                                it.setAnalyzer(cameraExecutor, ExerciseAnalyzer(exerciseType) { info, status, correct, pose, width, height ->
+                                    dataInfo = info
+                                    statusText = status
+                                    isCorrect = correct
 
-                    try {
-                        cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(
-                            lifecycleOwner,
-                            cameraSelector,
-                            preview,
-                            imageAnalysis
-                        )
-                    } catch (e: Exception) {
-                        Log.e("Camera", "Bind failed", e)
-                    }
-                }, ContextCompat.getMainExecutor(ctx))
+                                    // skeleton for debug
+                                    currentPose = pose
+                                    imageWidth = width
+                                    imageHeight = height
+                                })
+                            }
 
-                previewView
+                        val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+
+                        try {
+                            cameraProvider.unbindAll()
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                cameraSelector,
+                                preview,
+                                imageAnalysis
+                            )
+                        } catch (e: Exception) {
+                            Log.e("Camera", "Bind failed", e)
+                        }
+                    }, ContextCompat.getMainExecutor(ctx))
+
+                    previewView
+                }
+            )
+
+            // skeleton for debug
+            PoseOverlay(
+                pose = currentPose,
+                imageWidth = imageWidth,
+                imageHeight = imageHeight,
+                isFrontCamera = true
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(onClick = onClose, colors = ButtonDefaults.buttonColors(containerColor = Color.White)) {
+                    Text("結束")
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(text = exerciseType.title, color = Color.White, style = MaterialTheme.typography.titleMedium)
             }
-        )
 
-        // skeleton for debug
-        PoseOverlay(
-            pose = currentPose,
-            imageWidth = imageWidth,
-            imageHeight = imageHeight,
-            isFrontCamera = true
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.4f))
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(onClick = onClose, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) {
-                Text("結束")
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.7f))
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = if (isCorrect) Color.Green else Color.Yellow,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = dataInfo,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White
+                )
+                Text(
+                    text = exerciseType.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.LightGray,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = exerciseType.title, color = Color.White, style = MaterialTheme.typography.titleMedium)
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.7f))
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.headlineMedium,
-                color = if (isCorrect) Color.Green else Color.Yellow,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = dataInfo,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White
-            )
-            Text(
-                text = exerciseType.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.LightGray,
-                modifier = Modifier.padding(top = 8.dp)
-            )
         }
     }
 }
 
+// skeleton for debug
 @Composable
 fun PoseOverlay(
     pose: Pose?,
@@ -336,11 +341,11 @@ class ExerciseAnalyzer(
 
                         dataInfo = "左: ${leftAngle.toInt()}° / 右: ${rightAngle.toInt()}°"
 
-                        val isLeftUp = leftAngle < 80 && leftWrist.position.y <= 3 / 4 * leftShoulder.position.y + 1 / 4 * leftElbow.position.y
-                        val isRightUp = rightAngle < 80 && rightWrist.position.y <= 3 / 4 * rightShoulder.position.y + 1 / 4 * rightElbow.position.y
+                        val isLeftUp = leftAngle < 80 && leftWrist.position.y <= leftElbow.position.y
+                        val isRightUp = rightAngle < 80 && rightWrist.position.y <= rightElbow.position.y
 
                         if (isLeftUp && isRightUp) {
-                            status = "✅ 雙手完成"
+                            status = "完成"
                             isCorrect = true
                         } else if (isLeftUp) {
                             status = "請舉起右手"
@@ -363,10 +368,8 @@ class ExerciseAnalyzer(
 
                         val leftArmAngle = if(leftElbow != null) PoseUtils.getAngle(leftShoulder, leftElbow, leftWrist) else 0.0
 
-                        dataInfo = "手臂打直: ${leftArmAngle.toInt()}°"
-
                         if (isLeftUp && isRightUp && leftArmAngle > 150) {
-                            status = "✅ 伸展維持中"
+                            status = "完成"
                             isCorrect = true
                         } else {
                             status = "請向上拉直手臂"
@@ -376,7 +379,6 @@ class ExerciseAnalyzer(
                 }
 
                 ExerciseType.ANKLE_WEIGHT_LEG_EXTENSION_LEFT -> {
-                    // 腿部伸展 (負重-左腳 - 正面偵測)
                     val knee = leftKnee
                     val ankle = leftAnkle
 
@@ -385,10 +387,8 @@ class ExerciseAnalyzer(
                         val torsoHeight = abs((leftHip?.position?.y ?: 0f) - (leftShoulder?.position?.y ?: 100f))
                         val ratio = yDiff / torsoHeight
 
-                        dataInfo = "高度差: ${yDiff.toInt()}"
-
                         if (ratio < 0.5) {
-                            status = "✅ 左腳伸展維持中"
+                            status = "完成"
                             isCorrect = true
                         } else {
                             status = "請將左腳抬高伸直"
@@ -398,7 +398,6 @@ class ExerciseAnalyzer(
                 }
 
                 ExerciseType.ANKLE_WEIGHT_LEG_EXTENSION_RIGHT -> {
-                    // 腿部伸展 (負重-右腳 - 正面偵測)
                     val knee = rightKnee
                     val ankle = rightAnkle
 
@@ -407,10 +406,8 @@ class ExerciseAnalyzer(
                         val torsoHeight = abs((rightHip?.position?.y ?: 0f) - (rightShoulder?.position?.y ?: 100f))
                         val ratio = yDiff / torsoHeight
 
-                        dataInfo = "高度差: ${yDiff.toInt()}"
-
                         if (ratio < 0.5) {
-                            status = "✅ 右腳伸展維持中"
+                            status = "完成"
                             isCorrect = true
                         } else {
                             status = "請將右腳抬高伸直"
@@ -426,10 +423,8 @@ class ExerciseAnalyzer(
 
                         val ratio = if (torsoHeight > 0) thighVerticalHeight / torsoHeight else 0f
 
-                        dataInfo = "站立指標: ${String.format("%.1f", ratio)}"
-
                         if (ratio > 0.9) {
-                            status = "✅ 站立完成"
+                            status = "完成"
                             isCorrect = true
                         } else if (ratio < 0.6) {
                             status = "坐下休息"
